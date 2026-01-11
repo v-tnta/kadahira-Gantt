@@ -53,13 +53,18 @@ const Timer = ({ tasks = [] }) => {
         setIsActive(false);
         const endTime = new Date();
 
+        // 経過時間を実時刻の差分から計算（setIntervalのズレ防止）
+        const diffSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
         const logData = {
             taskId: activeTaskId,
             subTaskName: subTaskName, // ここが空かどうかチェックする
             startTime: startTime,
             endTime: endTime,
-            durationSeconds: elapsedSeconds
+            durationSeconds: diffSeconds // elapsedSecondsではなく実差分を使用
         };
+
+        console.log(`Timer Stopped. Displayed: ${elapsedSeconds}s, Actual: ${diffSeconds}s`);
 
         // サブタスク名が空なら、確認モーダルを開く
         if (!subTaskName.trim()) {
