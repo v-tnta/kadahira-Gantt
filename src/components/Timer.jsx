@@ -6,7 +6,7 @@ import { useTimeLogs } from '../hooks/useTimeLogs'
  * 作業時間を計測し、Firestoreにログを保存します。
  * 事後報告（手動入力）や、サブタスク名の入力強制機能を含みます。
  */
-const Timer = ({ tasks = [] }) => {
+const Timer = ({ tasks, onUpdateTask }) => {
     const { addTimeLog } = useTimeLogs();
 
     // タイマー用ステート
@@ -26,7 +26,6 @@ const Timer = ({ tasks = [] }) => {
 
     const intervalRef = useRef(null);
 
-    // タイマー計測ロジック
     // タイマー計測ロジック
     useEffect(() => {
         if (isActive && startTime) {
@@ -62,10 +61,10 @@ const Timer = ({ tasks = [] }) => {
 
         const logData = {
             taskId: activeTaskId,
-            subTaskName: subTaskName, // ここが空かどうかチェックする
+            subTaskName: subTaskName,
             startTime: startTime,
             endTime: endTime,
-            durationSeconds: diffSeconds // elapsedSecondsではなく実差分を使用
+            durationSeconds: diffSeconds
         };
 
         console.log(`Timer Stopped. Displayed: ${elapsedSeconds}s, Actual: ${diffSeconds}s`);
@@ -83,6 +82,15 @@ const Timer = ({ tasks = [] }) => {
     // 実際に保存するヘルパー関数
     const saveLog = async (data) => {
         await addTimeLog(data);
+
+        // Auto-Status Logic:
+        // タスクのステータスが 'TODO' なら 'DOING' に自動更新する
+        const currentTask = tasks.find(t => t.id === data.taskId);
+        if (currentTask && currentTask.status === 'TODO' && onUpdateTask) {
+            console.log(`Aut-update status for task ${currentTask.title} to DOING`);
+            await onUpdateTask(currentTask.id, { status: 'DOING' });
+        }
+
         // リセット
         setElapsedSeconds(0);
         setStartTime(null);
@@ -121,6 +129,13 @@ const Timer = ({ tasks = [] }) => {
         };
 
         await addTimeLog(log);
+
+        // Auto-Status Logic (事後報告でも適用)
+        const currentTask = tasks.find(t => t.id === log.taskId);
+        if (currentTask && currentTask.status === 'TODO' && onUpdateTask) {
+            await onUpdateTask(currentTask.id, { status: 'DOING' });
+        }
+
         setIsManualModalOpen(false);
         setManualData({ taskId: '', subTaskName: '', durationMinutes: '' }); // リセット
     };

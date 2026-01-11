@@ -9,7 +9,7 @@ import { useTimeLogs } from './hooks/useTimeLogs' // ログ取得用に追加
 import './App.css'
 
 function App() {
-  const { tasks, addTask, updateTask, deleteTask, loading, error } = useTasks();
+  const { tasks, addTask, updateTask, deleteTask, completelyDeleteTask, loading, error } = useTasks();
   const { timeLogs } = useTimeLogs(); // 全体のログを取得
 
   // モーダル用のステート
@@ -44,7 +44,7 @@ function App() {
           </div>
 
           <div>
-            <Timer tasks={tasks} />
+            <Timer tasks={tasks} onUpdateTask={updateTask} />
           </div>
 
           <div>
@@ -56,9 +56,12 @@ function App() {
         <div className="md:col-span-2 md:overflow-y-auto md:pl-2 custom-scrollbar">
           <TaskList
             tasks={tasks}
+            timeLogs={timeLogs}
             loading={loading}
             error={error}
             onTaskClick={handleTaskClick}
+            onUpdateTask={updateTask}
+            onDeleteTask={deleteTask}
           />
         </div>
 
@@ -70,6 +73,7 @@ function App() {
           logs={selectedTaskLogs}
           onUpdate={updateTask}
           onDelete={deleteTask}
+          onPhysicalDelete={completelyDeleteTask}
         />
       </div>
     </Layout>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 /**
@@ -16,9 +16,9 @@ export const useTasks = () => {
 
     // データの監視を開始 (マウント時に一度だけ実行)
     useEffect(() => {
-        // クエリ作成: 作成日時の新しい順に並べる
+        // クエリ作成: 作成日時の古い順に並べる（asc）
         // Note: isDeletedフィールドでのフィルタリングはクライアント側で行う（既存データ対応のため）
-        const q = query(tasksCollection, orderBy('createdAt', 'desc'));
+        const q = query(tasksCollection, orderBy('createdAt', 'asc'));
 
         // リアルタイム監視 (onSnapshot)
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -98,11 +98,39 @@ export const useTasks = () => {
         }
     };
 
+    /**
+     * タスクを物理削除する関数 (Cascade Delete)
+     * 関連する timeLogs も全て削除します。
+     * @param {string} taskId
+     */
+    const completelyDeleteTask = async (taskId) => {
+        try {
+            // 1. TimeLogsの削除 (Cascade)
+            const logsQuery = query(collection(db, 'timeLogs'), where('taskId', '==', taskId));
+            const logsSnapshot = await getDocs(logsQuery);
+
+            const batch = writeBatch(db);
+            logsSnapshot.forEach((logDoc) => {
+                batch.delete(logDoc.ref);
+            });
+            await batch.commit();
+
+            // 2. Task自体の削除
+            await deleteDoc(doc(db, 'tasks', taskId));
+            console.log("タスクと関連ログの完全削除に成功");
+
+        } catch (err) {
+            console.error("完全削除エラー:", err);
+            throw err; // UI側でcatchできるようにthrow
+        }
+    };
+
     return {
         tasks,
         addTask,
         updateTask,
-        deleteTask,
+        deleteTask, // Soft delete (Legacy)
+        completelyDeleteTask,
         loading,
         error
     };

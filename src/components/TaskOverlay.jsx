@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react'
-import TaskAnalytics from './TaskAnalytics'
 import GanttChart from './GanttChart'
+import TaskAnalytics from './TaskAnalytics'
 
 /**
- * TaskOverlay コンポーネント (モーダル)
+ * TaskOverlay コンポーネント
  * タスクの詳細（分析とガントチャート）を表示するオーバーレイです。
- * タスクの編集・論理削除機能も含みます。
+ * タスクの編集・完了・物理削除機能も含みます。
  */
-const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
+const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete, onPhysicalDelete }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ title: '', deadline: '', estimatedMinutes: 0 });
 
     // モーダルが開くたび、またはタスクが変わるたびにフォームを初期化
     useEffect(() => {
         if (task) {
-            // 締切日の形式変換 (Firestore Timestamp -> YYYY-MM-DD or String -> YYYY-MM-DD)
+            // 締切日の形式変換
             let formattedDeadline = '';
             if (task.deadline) {
                 if (task.deadline.seconds) {
@@ -53,9 +53,26 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
         setIsEditing(false);
     };
 
+    // タスク完了 (ステータス更新)
+    const handleComplete = async () => {
+        if (window.confirm(`タスク「${task.title}」を完了しますか？`)) {
+            await onUpdate(task.id, { status: 'DONE' });
+        }
+    };
+
+    // リストから非表示 (Soft Delete)
     const handleDelete = async () => {
         await onDelete(task.id);
-        onClose(); // 削除したら閉じる
+        onClose();
+    };
+
+    // 物理削除
+    const handlePhysicalDelete = async () => {
+        const confirmMessage = `タスク「${task.title}」を完全に削除しますか？\n\n※この操作は取り消せません。\n※関連する作業ログも全て削除されます。`;
+        if (window.confirm(confirmMessage)) {
+            await onPhysicalDelete(task.id);
+            onClose();
+        }
     };
 
     // 表示用の日付フォーマット関数
@@ -131,7 +148,9 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
                             // --- 閲覧モード ---
                             <>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-500">
+                                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${task.status === 'DONE' ? 'bg-green-100 text-green-700' :
+                                        task.status === 'DOING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
                                         {task.status || 'TODO'}
                                     </span>
                                     {/* 編集アイコン */}
@@ -144,11 +163,38 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                         </svg>
                                     </button>
-                                    {/* 削除アイコン */}
+
+                                    {/* ステータスがDONEの場合: 非表示 (Soft Delete) ボタン */}
+                                    {task.status === 'DONE' && (
+                                        <button
+                                            onClick={handleDelete}
+                                            className="text-gray-400 hover:text-gray-600 p-1"
+                                            title="リストから非表示"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        </button>
+                                    )}
+
+                                    {/* ステータスがDoneでない場合: 完了ボタン (Check) */}
+                                    {task.status !== 'DONE' && (
+                                        <button
+                                            onClick={handleComplete}
+                                            className="text-gray-400 hover:text-green-600 p-1"
+                                            title="完了にする"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </button>
+                                    )}
+
+                                    {/* 物理削除ボタン (Trash) */}
                                     <button
-                                        onClick={handleDelete}
+                                        onClick={handlePhysicalDelete}
                                         className="text-gray-400 hover:text-red-600 p-1"
-                                        title="削除"
+                                        title="完全に削除"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -162,11 +208,9 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
                             </>
                         )}
                     </div>
-
-                    {/* 閉じるボタン */}
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition"
+                        className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -174,12 +218,25 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete }) => {
                     </button>
                 </div>
 
-                {/* 分析データ (時間負債) */}
-                <TaskAnalytics task={task} logs={logs} />
+                {/* コンテンツエリア */}
+                <div className="space-y-8">
+                    {/* 時間負債分析 */}
+                    <section>
+                        <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+                            <span>📊</span> 時間負債
+                        </h3>
+                        <TaskAnalytics task={task} logs={logs} />
+                    </section>
 
-                {/* ガントチャート (作業ログ) */}
-                <div className="mt-8">
-                    <GanttChart logs={logs} />
+                    {/* 実績ガントチャート */}
+                    <section>
+                        <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+                            <span>📈</span> 実績チャート
+                        </h3>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <GanttChart logs={logs} />
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
