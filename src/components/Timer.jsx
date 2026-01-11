@@ -27,16 +27,20 @@ const Timer = ({ tasks = [] }) => {
     const intervalRef = useRef(null);
 
     // タイマー計測ロジック
+    // タイマー計測ロジック
     useEffect(() => {
-        if (isActive) {
+        if (isActive && startTime) {
             intervalRef.current = setInterval(() => {
-                setElapsedSeconds(prev => prev + 1);
+                const now = new Date();
+                // 表示用も実時刻との差分で計算（スロットリング対策）
+                const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+                setElapsedSeconds(diff);
             }, 1000);
         } else {
             clearInterval(intervalRef.current);
         }
         return () => clearInterval(intervalRef.current);
-    }, [isActive]);
+    }, [isActive, startTime]);
 
     // 開始ボタン
     const handleStart = () => {

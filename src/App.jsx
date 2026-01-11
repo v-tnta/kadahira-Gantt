@@ -35,25 +35,32 @@ function App() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8 text-center md:text-left">
-          {/* <h2 className="text-2xl font-bold text-gray-800">タスク管理</h2>
-          <p className="text-gray-500">新しいタスクを追加して、時間を管理しましょう。</p> */}
+      <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* 左カラム (PC時: 1/3幅) - Timer & Form */}
+        <div className="md:col-span-1 flex flex-col gap-6 md:overflow-y-auto md:pr-2 custom-scrollbar">
+          <div className="md:hidden mb-4 text-center">
+            {/* Mobileのみここにタイトルなどを出す場合 */}
+          </div>
+
+          <div>
+            <Timer tasks={tasks} />
+          </div>
+
+          <div>
+            <TaskForm addTask={addTask} />
+          </div>
         </div>
 
-        {/* Timerコンポーネント: タスクリストを渡して選択できるようにする */}
-        <Timer tasks={tasks} />
-
-        {/* TaskFormには「タスクを追加する関数」を渡す */}
-        <TaskForm addTask={addTask} />
-
-        {/* TaskListにはクリック時のハンドラを渡す */}
-        <TaskList
-          tasks={tasks}
-          loading={loading}
-          error={error}
-          onTaskClick={handleTaskClick}
-        />
+        {/* 右カラム (PC時: 2/3幅) - TaskList */}
+        <div className="md:col-span-2 md:overflow-y-auto md:pl-2 custom-scrollbar">
+          <TaskList
+            tasks={tasks}
+            loading={loading}
+            error={error}
+            onTaskClick={handleTaskClick}
+          />
+        </div>
 
         {/* タスク詳細モーダル (常にDOMには居るが、isOpenがtrueの時だけ表示される) */}
         <TaskOverlay

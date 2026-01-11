@@ -6,9 +6,9 @@ import React from 'react'
  */
 const Layout = ({ children }) => {
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-800">
+        <div className="flex flex-col min-h-screen md:h-screen bg-gray-50 text-gray-800 md:overflow-hidden">
             {/* ヘッダーエリア */}
-            <header className="bg-white shadow-sm p-4 sticky top-0 z-10">
+            <header className="bg-white shadow-sm p-4 sticky top-0 z-10 flex-shrink-0">
                 <div className="container mx-auto flex justify-between items-center">
                     <h1 className="text-xl font-bold text-blue-600">Refrecto (β)</h1>
                     <nav>
@@ -18,8 +18,8 @@ const Layout = ({ children }) => {
                 </div>
             </header>
 
-            {/* メインコンテンツエリア */}
-            <main className="container mx-auto p-4 md:p-8">
+            {/* メインコンテンツエリア: Desktopではスクロールしない (子がスクロールする) */}
+            <main className="flex-1 container mx-auto p-4 md:p-8 md:overflow-hidden">
                 {children}
             </main>
 
