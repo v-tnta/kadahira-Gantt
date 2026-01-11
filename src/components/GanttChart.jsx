@@ -1,58 +1,146 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 
 /**
- * GanttChart コンポーネント
- * 受け取ったログ(logs)を時系列のバーとして表示します。
- * モーダル内で、特定のタスクの作業履歴を表示するために使用します。
+ * GanttChart コンポーネント (Stacked Style)
+ * 作業ログを「積み上げ式」で表示します。
+ * 現実の時間軸ではなく、作業時間の合計経過時間を横軸にとります。
  */
 const GanttChart = ({ logs = [] }) => {
     if (logs.length === 0) {
         return <p className="text-gray-400 text-sm p-4 text-center">作業ログがありません。</p>;
     }
 
-    // チャートの表示範囲を決める（最初と最後のログの日時）
-    const timestamps = logs.map(l => [l.startTime, l.endTime]).flat().filter(Boolean);
-    if (timestamps.length === 0) return null;
+    // 計算ロジック
+    const { totalDurationMin, sortedLogs, ticks } = useMemo(() => {
+        // 時刻順（作成順）にソート
+        const sorted = [...logs].sort((a, b) => a.startTime - b.startTime);
 
-    const minTime = new Date(Math.min(...timestamps));
-    const maxTime = new Date(Math.max(...timestamps));
+        // 合計時間（分）を計算
+        const totalSec = sorted.reduce((acc, log) => acc + (log.durationSeconds || 0), 0);
+        const totalMin = Math.ceil(totalSec / 60);
 
-    // 全体の秒数を計算（スケール計算用）
-    const totalDuration = (maxTime - minTime) / 1000; // 秒
+        // 目盛り生成 (0, 30, 60, ... 合計時間を超える直前の30分刻みまで + 余白分)
+        // 最低でも少し余白を持たせるために +30分 くらいまで描画
+        const maxTick = Math.ceil(totalMin / 30) * 30 + 30;
+        const tickList = [];
+        for (let t = 0; t <= maxTick; t += 30) {
+            tickList.push(t);
+        }
 
-    // 日付フォーマット
-    const formatDate = (date) => {
-        return date.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    };
+        return {
+            totalDurationMin: totalMin,
+            sortedLogs: sorted,
+            ticks: tickList,
+            scaleMaxMin: maxTick // チャートの最大描画幅（分）
+        };
+    }, [logs]);
+
+    if (totalDurationMin === 0) return <p className="text-gray-400 text-sm p-4 text-center">作業時間が0分です。</p>;
+
+    // スケール定数: 標準は1分あたり3px
+    const STANDARD_PIXELS_PER_MIN = 3;
+
+    // コンテナの幅を取得して、収まるようにスケールを調整する
+    const containerRef = React.useRef(null);
+    const [containerWidth, setContainerWidth] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateWidth = () => {
+            if (containerRef.current) {
+                setContainerWidth(containerRef.current.clientWidth);
+            }
+        };
+
+        // 初回とウィンドウリサイズ時に実行
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+
+    // 実際のスケール計算: コンテナ幅に収まる最小スケール vs 標準スケール で小さい方を採用
+    // 0除算や初期値などへの対策も含む
+    const pixelsPerMin = useMemo(() => {
+        if (!containerWidth || !ticks.length) return STANDARD_PIXELS_PER_MIN;
+
+        // 全体を表示するのに必要な分の最大値（分）
+        const maxMin = ticks[ticks.length - 1];
+
+        // コンテナに収める場合のスケール (少し余白を見るため width - 20 くらいで計算)
+        const fitScale = (containerWidth - 20) / maxMin;
+
+        // 標準より小さくなる（＝縮小が必要）なら fitScale を使う
+        return Math.min(STANDARD_PIXELS_PER_MIN, fitScale);
+    }, [containerWidth, ticks]);
+
+    // バーの色パレット
+    const colors = [
+        'bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500',
+        'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'
+    ];
 
     return (
-        <div className="mt-4">
-            <h3 className="text-sm font-bold text-gray-600 mb-2">作業タイムライン (実績)</h3>
+        <div ref={containerRef} className="mt-6 w-full pb-4">
+            <h3 className="text-sm font-bold text-gray-600 mb-2 sticky left-0">実績ガントチャート</h3>
 
-            <div className="relative border-l-2 border-gray-200 pl-4 space-y-4">
-                {logs.map((log) => {
-                    if (!log.startTime || !log.endTime) return null;
-
-                    // 経過時間（分）
-                    const durationMin = Math.round((log.durationSeconds || 0) / 60);
-
-                    return (
-                        <div key={log.id} className="relative">
-                            {/* ドット */}
-                            <div className="absolute -left-[21px] top-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white"></div>
-
-                            <div className="bg-gray-50 p-3 rounded border border-gray-100 text-sm">
-                                <div className="flex justify-between text-gray-500 text-xs mb-1">
-                                    <span>{formatDate(log.startTime)}</span>
-                                    <span>{durationMin}分間</span>
-                                </div>
-                                <div className="font-medium text-gray-800">
-                                    {log.subTaskName || '作業'}
-                                </div>
-                            </div>
+            {/* チャートコンテナ */}
+            <div
+                className="relative min-h-[100px]"
+                style={{ width: '100%' }} // 幅はコンテナいっぱい
+            >
+                {/* 1. 目盛り (X軸) */}
+                <div className="absolute top-0 w-full h-6 border-b border-gray-300">
+                    {ticks.map((tick) => (
+                        <div
+                            key={tick}
+                            className="absolute bottom-0 text-xs text-gray-400 transform -translate-x-1/2 transition-all duration-300"
+                            style={{ left: `${tick * pixelsPerMin}px` }}
+                        >
+                            <div className="h-2 w-px bg-gray-300 mx-auto mb-1"></div>
+                            {tick % 60 === 0 && tick !== 0 ? tick / 60 + 'h' : tick !== 0 ? tick + 'm' : '0'}
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
+
+                {/* 2. スタックバーエリア */}
+                <div className="absolute top-8 left-0 h-12 bg-gray-100 rounded-lg border border-gray-200 flex overflow-hidden transition-all duration-300"
+                    style={{ width: `${ticks[ticks.length - 1] * pixelsPerMin}px` }} // バー全体の幅も動的に
+                >
+                    {sortedLogs.map((log, index) => {
+                        const durationMin = Math.round((log.durationSeconds || 0) / 60);
+                        if (durationMin <= 0) return null;
+
+                        const widthPx = durationMin * pixelsPerMin;
+                        const colorClass = colors[index % colors.length];
+
+                        return (
+                            <div
+                                key={log.id}
+                                className={`${colorClass} text-white text-xs flex items-center justify-center overflow-hidden whitespace-nowrap border-r border-white/20 hover:opacity-90 transition-all`}
+                                style={{
+                                    width: `${widthPx}px`,
+                                    height: '100%',
+                                    flexShrink: 0
+                                }}
+                                title={`${log.subTaskName}: ${durationMin}分`}
+                            >
+                                <span className="font-bold px-1 drop-shadow-md">
+                                    {log.subTaskName || '作業'}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 背景グリッド線 (装飾) */}
+                <div className="absolute top-8 bottom-0 w-full pointer-events-none z-0">
+                    {ticks.map((tick) => (
+                        <div
+                            key={tick}
+                            className="absolute top-0 h-14 w-px bg-gray-200 border-l border-dashed border-gray-300 transition-all duration-300"
+                            style={{ left: `${tick * pixelsPerMin}px` }}
+                        ></div>
+                    ))}
+                </div>
             </div>
         </div>
     )

@@ -17,7 +17,7 @@ const TaskOverlay = ({ isOpen, onClose, task, logs }) => {
         >
             {/* モーダル本体 */}
             <div
-                className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl m-4 p-6 relative animate-fade-in-up"
+                className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl m-4 p-6 relative animate-fade-in-up"
                 onClick={(e) => e.stopPropagation()} // 中身クリックでは閉じない
             >
                 {/* ヘッダー */}
