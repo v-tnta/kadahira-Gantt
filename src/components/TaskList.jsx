@@ -3,7 +3,7 @@
  * 親コンポーネント(App)から受け取った tasks データをもとにリストを表示します。
  * スクロール機能、ローディング表示、エラー表示を含みます。
  */
-const TaskList = ({ tasks, loading, error }) => {
+const TaskList = ({ tasks, loading, error, onTaskClick }) => {
     if (loading) {
         return <div className="text-center p-8 text-gray-500">読み込み中...</div>;
     }
@@ -24,7 +24,8 @@ const TaskList = ({ tasks, loading, error }) => {
                     tasks.map((task) => (
                         <div
                             key={task.id}
-                            className={`p-4 border rounded-lg flex justify-between items-center ${task.status === 'DONE' ? 'bg-gray-100 opacity-70' : 'bg-white'
+                            onClick={() => onTaskClick(task)}
+                            className={`cursor-pointer hover:shadow-md transition p-4 border rounded-lg flex justify-between items-center ${task.status === 'DONE' ? 'bg-gray-100 opacity-70' : 'bg-white'
                                 }`}
                         >
                             <div>
@@ -40,8 +41,8 @@ const TaskList = ({ tasks, loading, error }) => {
                             {/* ステータスバッジ */}
                             <div>
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${task.status === 'TODO' ? 'bg-gray-200 text-gray-700' :
-                                        task.status === 'DOING' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-green-100 text-green-700'
+                                    task.status === 'DOING' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-green-100 text-green-700'
                                     }`}>
                                     {task.status}
                                 </span>

@@ -13,8 +13,10 @@ src/
 │   ├── TaskForm.jsx       # タスク登録・見積もり・締切入力
 │   ├── TaskList.jsx       # タスク一覧・ステータス変更
 │   ├── Timer.jsx          # アクティブタスクの計測・サブタスク入力
-│   ├── Dashboard.jsx      # 時間負債（見積もり vs 実績）の数値表示
-│   └── GanttChart.jsx     # タイマーログに基づく実績ガントチャート表示
+│   ├── Timer.jsx          # アクティブタスクの計測・サブタスク入力
+│   ├── TaskOverlay.jsx    # タスク詳細モーダル (Dashboard & Ganttを含む)
+│   ├── TaskAnalytics.jsx  # 時間負債の計算と表示
+│   └── GanttChart.jsx     # タイマーログに基づく実績ガントチャート表示 (Overlay内で使用)
 ├── hooks/                 ## hook: UseStateやUseEffectのようなノリで、カスタムされたオリジナルのフローをコードにしたもの
 │   ├── useTasks.js        # Firestore: tasksコレクションのCRUD
 │   └── useTimeLogs.js     # Firestore: timeLogsコレクションのCRUD (## CRUD: Create, Read, Update, Deleteの四種類の機能)
@@ -70,21 +72,19 @@ src/
   - 経過時間のリアルタイム表示
 - **挙動**: Stop時に `durationSeconds` を計算し、DBへ保存する。
 
-### 4.3 Dashboard
-- **機能**: 「時間負債」を計算して表示する。
-- **ロジック**:
-  1. **総見積もり時間**: 全タスクの `estimatedMinutes` の合計。
-  2. **総実働時間**: 全ログの `durationSeconds` の合計 / 60 (分換算)。
-  3. **時間負債**: (総実働時間) - (総見積もり時間)。
-- **表示**: 赤字（プラス＝時間使いすぎ）または青字（マイナス＝余裕あり）で大きく表示。
+### 4.3 Task Overlay (Modal)
+- **機能**: タスクリストをクリックした際に表示される詳細ポップアップ。
+- **構成**:
+  1. **TaskAnalytics**: 選択されたタスクの「時間負債」を表示。
+     - (そのタスクの実績合計) - (見積もり) を計算。
+  2. **GanttChart**: 選択されたタスクに関連する `timeLogs` のみをフィルタリングしてチャート表示。
 
-### 4.4 GanttChart
-- **機能**: `timeLogs` を時系列でバーとして描画する。
+### 4.4 GanttChart (Component)
+- **機能**: 渡された `timeLogs` を時系列でバーとして描画する。
 - **仕様**:
   - 横軸: 時間 (日付・時刻)
-  - 縦軸: タスク
+  - 縦軸: サブタスク または ログのセッション
   - Logの `startTime` から `endTime` までの区間をバーとして描画。
-  - css grid または flexbox を用いてシンプルに実装する（ライブラリ依存を減らすため）。
 
 ## 5. 技術スタック & 開発ルール
 

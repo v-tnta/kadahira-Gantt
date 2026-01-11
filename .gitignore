@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # firestoreSettings
-/lib/firebase.js
+./lib/firebase.js

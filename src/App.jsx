@@ -3,12 +3,35 @@ import Layout from './components/Layout'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 import Timer from './components/Timer' // Timerコンポーネントを追加
-import { useTasks } from './hooks/useTasks' // カスタムフックをインポート
+import TaskOverlay from './components/TaskOverlay'
+import { useTasks } from './hooks/useTasks'
+import { useTimeLogs } from './hooks/useTimeLogs' // ログ取得用に追加
 import './App.css'
 
 function App() {
-  // カスタムフックから「タスクのデータ」と「追加機能」を受け取る
   const { tasks, addTask, loading, error } = useTasks();
+  const { timeLogs } = useTimeLogs(); // 全体のログを取得
+
+  // モーダル用のステート
+  const [selectedTask, setSelectedTask] = React.useState(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+  // タスクがクリックされた時の処理
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+  // モーダルを閉じる処理
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  // 選択されたタスクに関連するログだけをフィルタリング
+  const selectedTaskLogs = selectedTask
+    ? timeLogs.filter(log => log.taskId === selectedTask.id)
+    : [];
 
   return (
     <Layout>
@@ -21,11 +44,24 @@ function App() {
         {/* Timerコンポーネント: タスクリストを渡して選択できるようにする */}
         <Timer tasks={tasks} />
 
-        {/* TaskFormには「タスクを追加する関数」を渡す（お願いする権利） */}
+        {/* TaskFormには「タスクを追加する関数」を渡す */}
         <TaskForm addTask={addTask} />
 
-        {/* TaskListには「タスクのデータ」を渡す（表示する情報） */}
-        <TaskList tasks={tasks} loading={loading} error={error} />
+        {/* TaskListにはクリック時のハンドラを渡す */}
+        <TaskList
+          tasks={tasks}
+          loading={loading}
+          error={error}
+          onTaskClick={handleTaskClick}
+        />
+
+        {/* タスク詳細モーダル (常にDOMには居るが、isOpenがtrueの時だけ表示される) */}
+        <TaskOverlay
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          task={selectedTask}
+          logs={selectedTaskLogs}
+        />
       </div>
     </Layout>
   )
