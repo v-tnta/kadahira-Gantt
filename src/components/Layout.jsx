@@ -10,7 +10,7 @@ const Layout = ({ children }) => {
             {/* ヘッダーエリア */}
             <header className="bg-white shadow-sm p-4 sticky top-0 z-10">
                 <div className="container mx-auto flex justify-between items-center">
-                    <h1 className="text-xl font-bold text-blue-600">Kadahira - Gantt</h1>
+                    <h1 className="text-xl font-bold text-blue-600">Refrecto (β)</h1>
                     <nav>
                         {/* 将来的にナビゲーションリンクなどをここに配置 */}
                         <span className="text-sm text-gray-500">Time Management App</span>

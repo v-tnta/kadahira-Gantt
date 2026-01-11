@@ -1,4 +1,4 @@
-# Kadahira - Gantt System Design Document
+# Refrecto (β) System Design Document
 
 ## 1. 概要
 本アプリケーションは、学生の時間管理能力とメタ認知を向上させるためのツールです。
@@ -22,7 +22,7 @@ src/
 │   └── useTimeLogs.js     # Firestore: timeLogsコレクションのCRUD (## CRUD: Create, Read, Update, Deleteの四種類の機能)
 ├── lib/
 │   └── firebase.js        # Firebase初期化設定
-├── App.jsx                # ルーティング管理
+├── App.jsx                # メイン画面の構成 (Timer, TaskForm, TaskList, Overlayの配置)
 └── main.jsx               # エントリーポイント
 ```
 
@@ -70,7 +70,7 @@ src/
   - サブタスク名入力 (Text: 「資料探し」など)
   - Start / Stop ボタン
   - 経過時間のリアルタイム表示
-- **挙動**: Stop時に `durationSeconds` を計算する。サブタスク名が入力されていた場合は、DBへ保存する。サブタスク名が入力されていなかった場合は、サブタスク名を入力するように促すモーダルを表示して、その後DBへ保存する。
+- **挙動**: Stop時に `durationSeconds` を計算する。計算は「終了時刻 - 開始時刻」の実差分を用いて算出し、ブラウザのスリープ等による計測ズレを防ぐ。サブタスク名が入力されていた場合は、DBへ保存する。サブタスク名が入力されていなかった場合は、サブタスク名を入力するように促すモーダルを表示して、その後DBへ保存する。
 
 ### 4.2.1 Timer (事後報告) 
 - **補足**: 4.2 Timerの表示領域の右上に配置したボタンを押すと、作業の事後報告用モーダルを表示する。

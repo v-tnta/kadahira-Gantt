@@ -37,8 +37,8 @@ function App() {
     <Layout>
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center md:text-left">
-          <h2 className="text-2xl font-bold text-gray-800">タスク管理</h2>
-          <p className="text-gray-500">新しいタスクを追加して、時間を管理しましょう。</p>
+          {/* <h2 className="text-2xl font-bold text-gray-800">タスク管理</h2>
+          <p className="text-gray-500">新しいタスクを追加して、時間を管理しましょう。</p> */}
         </div>
 
         {/* Timerコンポーネント: タスクリストを渡して選択できるようにする */}

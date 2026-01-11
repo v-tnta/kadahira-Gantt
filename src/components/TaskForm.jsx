@@ -29,7 +29,7 @@ const TaskForm = ({ addTask }) => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-lg font-semibold mb-4 text-gray-700">新しいタスクを登録</h2>
+            <h2 className="text-lg font-semibold mb-4 text-gray-700">新規タスクの追加</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* タスク名入力 */}
                 <div>
