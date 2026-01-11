@@ -17,7 +17,7 @@ export const useTasks = () => {
     // データの監視を開始 (マウント時に一度だけ実行)
     useEffect(() => {
         // クエリ作成: 作成日時の古い順に並べる（asc）
-        // Note: isDeletedフィールドでのフィルタリングはクライアント側で行う（既存データ対応のため）
+        // Note: isVisibleフィールドでのフィルタリングはクライアント側で行う（既存データ対応のため）
         const q = query(tasksCollection, orderBy('createdAt', 'asc'));
 
         // リアルタイム監視 (onSnapshot)
@@ -31,8 +31,9 @@ export const useTasks = () => {
                     createdAt: doc.data().createdAt?.toDate() || new Date(),
                     deadline: doc.data().deadline // 文字列のまま扱うか、必要なら変換
                 }))
-                // 論理削除（isDeleted: true）されていないものだけを表示
-                .filter(task => !task.isDeleted);
+                // 論理削除（isVisible: false）されていないものだけを表示
+                // backward compatibility: undefined (old data) is treated as visible
+                .filter(task => task.isVisible !== false);
 
             setTasks(newTasks);
             setLoading(false);
@@ -54,7 +55,7 @@ export const useTasks = () => {
             await addDoc(tasksCollection, {
                 ...task,
                 status: 'TODO',
-                isDeleted: false, // 初期値
+                isVisible: true, // 初期値
                 createdAt: serverTimestamp() // サーバー側の日時を使用
             });
             console.log("タスク追加成功");
@@ -90,7 +91,7 @@ export const useTasks = () => {
         try {
             const taskRef = doc(db, 'tasks', taskId);
             // 物理削除 (deleteDoc) ではなく、フラグによる論理削除
-            await updateDoc(taskRef, { isDeleted: true });
+            await updateDoc(taskRef, { isVisible: false });
             console.log("タスク論理削除成功");
         } catch (err) {
             console.error("タスク削除エラー:", err);
