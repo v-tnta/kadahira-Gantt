@@ -12,6 +12,15 @@ const TaskList = ({ tasks, loading, error, onTaskClick }) => {
         return <div className="text-center p-8 text-red-500">エラーが発生しました。設定を確認してください。</div>;
     }
 
+    // 日付フォーマット関数 (String, Date, Timestamp対応)
+    const formatDate = (val) => {
+        if (!val) return '未設定';
+        if (typeof val === 'string') return val;
+        if (val instanceof Date) return val.toLocaleDateString();
+        if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
+        return val;
+    };
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-lg font-semibold mb-4 text-gray-700">タスク一覧</h2>
@@ -34,7 +43,7 @@ const TaskList = ({ tasks, loading, error, onTaskClick }) => {
                                 </h3>
                                 <div className="text-sm text-gray-500 mt-1 flex gap-4">
                                     <span>⏳ 見積: {task.estimatedMinutes}分</span>
-                                    <span>📅 締切: {task.deadline}</span>
+                                    <span>📅 締切: {formatDate(task.deadline)}</span>
                                 </div>
                             </div>
 

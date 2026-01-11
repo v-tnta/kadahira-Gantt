@@ -9,7 +9,7 @@ import { useTimeLogs } from './hooks/useTimeLogs' // ログ取得用に追加
 import './App.css'
 
 function App() {
-  const { tasks, addTask, loading, error } = useTasks();
+  const { tasks, addTask, updateTask, deleteTask, loading, error } = useTasks();
   const { timeLogs } = useTimeLogs(); // 全体のログを取得
 
   // モーダル用のステート
@@ -68,6 +68,8 @@ function App() {
           onClose={handleCloseModal}
           task={selectedTask}
           logs={selectedTaskLogs}
+          onUpdate={updateTask}
+          onDelete={deleteTask}
         />
       </div>
     </Layout>
