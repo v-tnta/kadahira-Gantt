@@ -3,7 +3,7 @@
  * 親コンポーネント(App)から受け取った tasks データをもとにリストを表示します。
  * スクロール機能、ローディング表示、エラー表示を含みます。
  */
-const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, onDeleteTask }) => {
+const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, onDeleteTask, showHidden, onToggleHidden }) => {
     if (loading) {
         return <div className="text-center p-8 text-gray-500">読み込み中...</div>;
     }
@@ -48,7 +48,18 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-lg font-semibold mb-4 text-gray-700">タスク一覧</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-700">タスク一覧</h2>
+                <label className="flex items-center cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                    <input
+                        type="checkbox"
+                        checked={showHidden}
+                        onChange={onToggleHidden}
+                        className="mr-2 cursor-pointer"
+                    />
+                    非表示も表示
+                </label>
+            </div>
 
             {/* タスクリスト表示エリア: 高さ制限とスクロールを追加 */}
             <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -61,12 +72,14 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
                             <div
                                 key={task.id}
                                 onClick={() => onTaskClick(task)}
-                                className={`cursor-pointer hover:shadow-md transition p-4 border rounded-lg flex justify-between items-center ${task.status === 'DONE' ? 'bg-gray-100 opacity-70' : 'bg-white'
+                                className={`cursor-pointer hover:shadow-md transition p-4 border rounded-lg flex justify-between items-center ${!task.isVisible ? 'bg-gray-200 opacity-60' :
+                                    task.status === 'DONE' ? 'bg-gray-100 opacity-80' : 'bg-white'
                                     }`}
                             >
                                 <div>
                                     <h3 className={`font-medium ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                                         {task.title}
+                                        {!task.isVisible && <span className="text-xs ml-2 text-red-500">(非表示)</span>}
                                     </h3>
                                     <div className="text-sm text-gray-500 mt-1 flex gap-4">
                                         <span>⏳ 見積: {task.estimatedMinutes}分</span>
@@ -84,7 +97,7 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
                                         </span>
                                     )}
 
-                                    
+
                                     {/* 操作ボタン */}
                                     <div className="flex items-center">
                                         {task.status !== 'DONE' ? (
@@ -110,7 +123,7 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
                                         )}
                                     </div>
 
-                                    
+
 
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${task.status === 'TODO' ? 'bg-gray-200 text-gray-700' :
                                         task.status === 'DOING' ? 'bg-yellow-100 text-yellow-700' :

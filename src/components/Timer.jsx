@@ -162,7 +162,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
                     className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded border border-gray-300"
                     disabled={isActive}
                 >
-                    ＋事後報告
+                    ＋きろく
                 </button>
             </div>
 
@@ -246,7 +246,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
             {isManualModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setIsManualModalOpen(false)}>
                     <div className="bg-white p-6 rounded-lg shadow-xl w-96" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold mb-4">作業の事後報告</h3>
+                        <h3 className="text-lg font-bold mb-4">作業のきろく</h3>
 
                         <div className="space-y-4">
                             <div>

@@ -27,13 +27,14 @@ export const useTasks = () => {
                 .map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
+                    // 旧データ対応: isVisibleが未定義の場合は true (表示) とする
+                    isVisible: doc.data().isVisible !== false,
                     // FirestoreのTimestamp型をDate型に変換 (日付表示用)
                     createdAt: doc.data().createdAt?.toDate() || new Date(),
                     deadline: doc.data().deadline // 文字列のまま扱うか、必要なら変換
                 }))
-                // 論理削除（isVisible: false）されていないものだけを表示
-                // backward compatibility: undefined (old data) is treated as visible
-                .filter(task => task.isVisible !== false);
+            // 論理削除（isVisible: false）も含めて全て返す（フィルタリングはUI側で行う）
+            // .filter(task => task.isVisible !== false);
 
             setTasks(newTasks);
             setLoading(false);

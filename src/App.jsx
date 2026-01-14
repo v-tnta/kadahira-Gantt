@@ -12,6 +12,13 @@ function App() {
   const { tasks, addTask, updateTask, deleteTask, completelyDeleteTask, loading, error } = useTasks();
   const { timeLogs } = useTimeLogs(); // 全体のログを取得
 
+  // 非表示タスクの表示切り替え
+  const [showHidden, setShowHidden] = React.useState(false);
+
+  // 表示用タスクと、タイマー用（アクティブのみ）タスクの切り分け
+  const visibleTasks = React.useMemo(() => tasks.filter(t => t.isVisible !== false), [tasks]);
+  const tasksForList = showHidden ? tasks : visibleTasks;
+
   // モーダル用のステート
   const [selectedTask, setSelectedTask] = React.useState(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -44,7 +51,8 @@ function App() {
           </div>
 
           <div>
-            <Timer tasks={tasks} onUpdateTask={updateTask} />
+            {/* Timerには常に表示中のタスクのみを渡す */}
+            <Timer tasks={visibleTasks} onUpdateTask={updateTask} />
           </div>
 
           <div>
@@ -55,13 +63,15 @@ function App() {
         {/* 右カラム (PC時: 2/3幅) - TaskList */}
         <div className="md:col-span-2 md:overflow-y-auto md:pl-2 custom-scrollbar">
           <TaskList
-            tasks={tasks}
+            tasks={tasksForList}
             timeLogs={timeLogs}
             loading={loading}
             error={error}
             onTaskClick={handleTaskClick}
             onUpdateTask={updateTask}
             onDeleteTask={deleteTask}
+            showHidden={showHidden}
+            onToggleHidden={() => setShowHidden(!showHidden)}
           />
         </div>
 
