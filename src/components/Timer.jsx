@@ -14,7 +14,8 @@ const Timer = ({ tasks, onUpdateTask }) => {
     const [subTaskName, setSubTaskName] = useState('');
     const [isActive, setIsActive] = useState(false);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
-    const [startTime, setStartTime] = useState(null);
+    const [accumulatedSeconds, setAccumulatedSeconds] = useState(0); // 一時停止までの累積時間
+    const [startTime, setStartTime] = useState(null); // 現在のセッションの開始時刻
 
     // モーダル用ステート
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -31,17 +32,17 @@ const Timer = ({ tasks, onUpdateTask }) => {
         if (isActive && startTime) {
             intervalRef.current = setInterval(() => {
                 const now = new Date();
-                // 表示用も実時刻との差分で計算（スロットリング対策）
-                const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-                setElapsedSeconds(diff);
+                // 累積時間 + 現在のセッション経過時間
+                const currentSessionSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+                setElapsedSeconds(accumulatedSeconds + currentSessionSeconds);
             }, 1000);
         } else {
             clearInterval(intervalRef.current);
         }
         return () => clearInterval(intervalRef.current);
-    }, [isActive, startTime]);
+    }, [isActive, startTime, accumulatedSeconds]);
 
-    // 開始ボタン
+    // 開始（再開）ボタン
     const handleStart = () => {
         if (!activeTaskId) {
             alert("タスクを選択してください");
@@ -51,23 +52,34 @@ const Timer = ({ tasks, onUpdateTask }) => {
         setIsActive(true);
     };
 
-    // 停止ボタン
-    const handleStop = async () => {
+    // 一時停止ボタン
+    const handlePause = () => {
         setIsActive(false);
-        const endTime = new Date();
+        const now = new Date();
+        // 現在のセッション時間を累積に加算
+        const currentSessionSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const newAccumulated = accumulatedSeconds + currentSessionSeconds;
 
-        // 経過時間を実時刻の差分から計算（setIntervalのズレ防止）
-        const diffSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+        setAccumulatedSeconds(newAccumulated);
+        setElapsedSeconds(newAccumulated); // 表示を更新（念のため）
+        setStartTime(null);
+    };
+
+    // きろく（保存）ボタン
+    const handleRecordClick = async () => {
+        const durationSeconds = elapsedSeconds;
+
+        // 終了時刻 = 現在時刻。開始時刻 = 現在時刻 - 経過時間 (として記録)
+        const endTime = new Date();
+        const calculatedStartTime = new Date(endTime.getTime() - durationSeconds * 1000);
 
         const logData = {
             taskId: activeTaskId,
             subTaskName: subTaskName,
-            startTime: startTime,
+            startTime: calculatedStartTime,
             endTime: endTime,
-            durationSeconds: diffSeconds
+            durationSeconds: durationSeconds
         };
-
-        console.log(`Timer Stopped. Displayed: ${elapsedSeconds}s, Actual: ${diffSeconds}s`);
 
         // サブタスク名が空なら、確認モーダルを開く
         if (!subTaskName.trim()) {
@@ -87,13 +99,15 @@ const Timer = ({ tasks, onUpdateTask }) => {
         // タスクのステータスが 'TODO' なら 'DOING' に自動更新する
         const currentTask = tasks.find(t => t.id === data.taskId);
         if (currentTask && currentTask.status === 'TODO' && onUpdateTask) {
-            console.log(`Aut-update status for task ${currentTask.title} to DOING`);
+            console.log(`Auto-update status for task ${currentTask.title} to DOING`);
             await onUpdateTask(currentTask.id, { status: 'DOING' });
         }
 
         // リセット
         setElapsedSeconds(0);
+        setAccumulatedSeconds(0);
         setStartTime(null);
+        setIsActive(false);
         setSubTaskName('');
         setPendingLogData(null);
     };
@@ -155,6 +169,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                     ⏱ 作業タイマー
                     {isActive && <span className="text-sm font-normal text-blue-600 animate-pulse">● 計測中...</span>}
+                    {!isActive && elapsedSeconds > 0 && <span className="text-sm font-normal text-orange-500">● 一時停止中</span>}
                 </h2>
                 {/* 事後報告ボタン */}
                 <button
@@ -162,7 +177,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
                     className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded border border-gray-300"
                     disabled={isActive}
                 >
-                    ＋きろく
+                    ＋きろく（事後報告）
                 </button>
             </div>
 
@@ -174,7 +189,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                         value={activeTaskId}
                         onChange={(e) => setActiveTaskId(e.target.value)}
-                        disabled={isActive}
+                        disabled={isActive || elapsedSeconds > 0} // 計測中または一時停止中は変更不可
                     >
                         <option value="">タスクを選択してください</option>
                         {tasks.map(task => (
@@ -192,7 +207,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={subTaskName}
                         onChange={(e) => setSubTaskName(e.target.value)}
-                        disabled={isActive || isConfirmModalOpen} // モーダル中は入力不可
+                        disabled={isActive || isConfirmModalOpen} // モーダル中は入力不可（一時停止中は編集可で良いか？いったんそのままで）
                     />
                 </div>
             </div>
@@ -203,21 +218,35 @@ const Timer = ({ tasks, onUpdateTask }) => {
                     {formatTime(elapsedSeconds)}
                 </div>
 
-                {!isActive ? (
-                    <button
-                        onClick={handleStart}
-                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-full shadow transition transform hover:scale-105"
-                    >
-                        START
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleStop}
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-8 rounded-full shadow transition transform hover:scale-105"
-                    >
-                        STOP
-                    </button>
-                )}
+                <div className="flex gap-2">
+                    {!isActive ? (
+                        <>
+                            <button
+                                onClick={handleStart}
+                                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-full shadow transition transform hover:scale-105"
+                            >
+                                {elapsedSeconds > 0 ? 'RESUME' : 'START'}
+                            </button>
+
+                            {/* 一時停止中で、かつ時間が記録されている場合のみ「きろく」ボタンを表示 */}
+                            {elapsedSeconds > 0 && (
+                                <button
+                                    onClick={handleRecordClick}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-full shadow transition transform hover:scale-105 animate-bounce-short"
+                                >
+                                    きろく
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <button
+                            onClick={handlePause}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-8 rounded-full shadow transition transform hover:scale-105"
+                        >
+                            STOP (Pause)
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* --- サブタスク入力確認モーダル --- */}
@@ -246,7 +275,7 @@ const Timer = ({ tasks, onUpdateTask }) => {
             {isManualModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setIsManualModalOpen(false)}>
                     <div className="bg-white p-6 rounded-lg shadow-xl w-96" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold mb-4">作業のきろく</h3>
+                        <h3 className="text-lg font-bold mb-4">作業のきろく (事後報告)</h3>
 
                         <div className="space-y-4">
                             <div>
