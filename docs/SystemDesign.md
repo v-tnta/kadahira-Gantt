@@ -15,21 +15,27 @@
 
 ```
 src/
-├── components/
-│   ├── Layout.jsx         # ヘッダー・メインエリアを含む共通レイアウト
-│   ├── TaskForm.jsx       # タスク登録・見積もり・締切入力
-│   ├── TaskList.jsx       # タスク一覧・ステータス変更
-│   ├── Timer.jsx          # アクティブタスクの計測・サブタスク入力
-│   ├── TaskOverlay.jsx    # タスク詳細モーダル (Dashboard & Ganttを含む)
-│   ├── TaskAnalytics.jsx  # 時間負債の計算と表示
-│   └── GanttChart.jsx     # タイマーログに基づく実績ガントチャート表示 (Overlay内で使用)
-├── hooks/                 ## hook: UseStateやUseEffectのようなノリで、カスタムされたオリジナルのフローをコードにしたもの
-│   ├── useTasks.js        # Firestore: tasksコレクションのCRUD
-│   └── useTimeLogs.js     # Firestore: timeLogsコレクションのCRUD (## CRUD: Create, Read, Update, Deleteの四種類の機能)
+├── components/          # Presentation Layer: UI表示
+│   ├── Layout.jsx         
+│   ├── TaskForm.jsx       
+│   ├── TaskList.jsx       
+│   ├── Timer.jsx          
+│   ├── TaskOverlay.jsx    
+│   ├── TaskAnalytics.jsx  
+│   └── GanttChart.jsx     
+├── hooks/               # Application Layer: ユースケース (Serviceを利用)
+│   ├── useTasks.js        
+│   └── useTimeLogs.js     
+├── services/            # Infrastructure Layer: Firebase通信
+│   ├── taskService.js     
+│   └── timeLogService.js  
+├── domain/              # Domain Layer: ビジネスロジック・エンティティ
+│   ├── task.js            
+│   └── timeLog.js         
 ├── lib/
 │   └── firebase.js        # Firebase初期化設定
-├── App.jsx                # メイン画面の構成 (Timer, TaskForm, TaskList, Overlayの配置)
-└── main.jsx               # エントリーポイント
+├── App.jsx                
+└── main.jsx               
 ```
 
 ## 3. データ構造 (Firestore Schema)
@@ -143,5 +149,9 @@ src/
 - **Styling**: Tailwind CSS (ユーティリティクラスを活用し、CSSファイル作成を減らす)
 - **Backend**: Firebase Firestore
 - **Coding Style**:
-  - **Custom Hooks**: データの取得・保存ロジックは必ず `hooks/` ディレクトリに分離する。コンポーネント内に `useEffect` で直接 `onSnapshot` を書かない。
+  - **Layered Architecture**:
+    - **Presentation (Components)**: UIのみに関心を持つ。ロジックはHooksに委譲。
+    - **Application (Hooks)**: ユースケースを定義。直接Firestoreを触らず、Serviceを呼ぶ。
+    - **Infrastructure (Services)**: Firestoreとの通信を隠蔽する。
+    - **Domain (Entities)**: データ構造とビジネスロジック（遅延判定など）を持つ。
   - **段階的実装**: UI実装(固定値) → State実装(機能動作) → DB接続 の順で進める。

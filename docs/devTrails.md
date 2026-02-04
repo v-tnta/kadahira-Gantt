@@ -572,3 +572,145 @@ const handlePause = () => {
     setStartTime(null); // セッション終了
 };
 ```
+
+## 📅 2026/02/04 レイヤードアーキテクチャへの移行とセキュリティ強化
+
+### **【実装内容🔧】**
+
+#### **1. アーキテクチャの再構築**
+- **課題**: コンポーネントやHooks内にFirestoreの操作ロジックが混在し、保守性が低下していた。
+- **解決**: **レイヤードアーキテクチャ**を導入し、責務を明確に分離。
+  - **Domain層 ()**: 純粋なビジネスロジック（エンティティ定義、バリデーション）。
+    - `Task`, `TimeLog` クラスを作成。
+  - **Infrastructure層 ()**: 外部サービス（Firebase）との通信ロジック。
+    - `taskService.js`, `timeLogService.js` を作成し、Firestore SDKへの依存をここに集約。
+  - **Application層 ()**: ユースケースの管理。
+    - `useTasks`, `useTimeLogs` をリファクタリングし、Service層経由でデータ操作を行うよう変更。
+  - **Presentation層 ()**: UI表示に専念。変更は最小限に留めた。
+
+#### **2. セキュリティと設定管理**
+- **課題**: `firebase.js` にAPIキーがハードコーディングされていた。
+- **解決**:
+  - `.env` ファイルを作成し、環境変数 (`VITE_FIREBASE_*`) で管理。
+  - `.gitignore` に `.env` を追加し、リポジトリへの流出を防止。
+
+### **【技術的な判断🤔】**
+- **Domain Entityの導入**:
+  - Firestoreのデータ構造（Timestamp等）と、アプリ内で扱うデータ構造（Dateオブジェクト等）を変換するロジックをエンティティの `fromFirestore` メソッドに集約。
+  - これにより、UI側で `seconds * 1000` のような変換処理を書く必要がなくなった。
+
+- **Service層の分離**:
+  - 将来的にバックエンドをFirestore以外に変更したり、Mockデータでテストしたくなった場合に、Service層を差し替えるだけで対応可能にした。
+
+### **【重要なコード💾】**
+
+**Task Entity ()**
+```javascript
+export class Task {
+    constructor({ id, title, status, ... }) {
+        this.id = id;
+        this.title = title;
+        // ...
+    }
+
+    // ドメインロジック: 遅延判定
+    isOverdue() {
+        if (!this.deadline || this.isCompleted()) return false;
+        return new Date() > this.deadline;
+    }
+
+    // Factory Method
+    static fromFirestore(id, data) {
+        return new Task({
+            id,
+            ...data,
+            createdAt: data.createdAt?.toDate(),
+            // ...
+        });
+    }
+}
+```
+
+**Task Service ()**
+```javascript
+export const subscribeToTasks = (onUpdate, onError) => {
+    const q = query(collection(db, 'tasks'), orderBy('createdAt', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+        // 取得データをEntityに変換して返す
+        const tasks = snapshot.docs.map(doc => Task.fromFirestore(doc.id, doc.data()));
+        onUpdate(tasks);
+    }, onError);
+};
+```
+
+## 📅 2026/02/04 レイヤードアーキテクチャへの移行とセキュリティ強化
+
+今回のバージョンを version v0.0.1 とした。
+
+### **【実装内容🔧】**
+
+#### **1. アーキテクチャの再構築**
+- **課題**: コンポーネントやHooks内にFirestoreの操作ロジックが混在し、保守性が低下していた。
+- **解決**: **レイヤードアーキテクチャ**を導入し、責務を明確に分離。
+  - **Domain層 (`src/domain/`)**: 純粋なビジネスロジック（エンティティ定義、バリデーション）。
+    - `Task`, `TimeLog` クラスを作成。
+  - **Infrastructure層 (`src/services/`)**: 外部サービス（Firebase）との通信ロジック。
+    - `taskService.js`, `timeLogService.js` を作成し、Firestore SDKへの依存をここに集約。
+  - **Application層 (`src/hooks/`)**: ユースケースの管理。
+    - `useTasks`, `useTimeLogs` をリファクタリングし、Service層経由でデータ操作を行うよう変更。
+  - **Presentation層 (`src/components/`)**: UI表示に専念。変更は最小限に留めた。
+
+#### **2. セキュリティと設定管理**
+- **課題**: `firebase.js` にAPIキーがハードコーディングされていた。
+- **解決**:
+  - `.env` ファイルを作成し、環境変数 (`VITE_FIREBASE_*`) で管理。
+  - `.gitignore` に `.env` を追加し、リポジトリへの流出を防止。
+
+### **【技術的な判断🤔】**
+- **Domain Entityの導入**:
+  - Firestoreのデータ構造（Timestamp等）と、アプリ内で扱うデータ構造（Dateオブジェクト等）を変換するロジックをエンティティの `fromFirestore` メソッドに集約。
+  - これにより、UI側で `seconds * 1000` のような変換処理を書く必要がなくなった。
+
+- **Service層の分離**:
+  - 将来的にバックエンドをFirestore以外に変更したり、Mockデータでテストしたくなった場合に、Service層を差し替えるだけで対応可能にした。
+
+### **【重要なコード💾】**
+
+**Task Entity (`src/domain/task.js`)**
+```javascript
+export class Task {
+    constructor({ id, title, status, ... }) {
+        this.id = id;
+        this.title = title;
+        // ...
+    }
+
+    // ドメインロジック: 遅延判定
+    isOverdue() {
+        if (!this.deadline || this.isCompleted()) return false;
+        return new Date() > this.deadline;
+    }
+
+    // Factory Method
+    static fromFirestore(id, data) {
+        return new Task({
+            id,
+            ...data,
+            createdAt: data.createdAt?.toDate(),
+            // ...
+        });
+    }
+}
+```
+
+**Task Service (`src/services/taskService.js`)**
+```javascript
+export const subscribeToTasks = (onUpdate, onError) => {
+    const q = query(collection(db, 'tasks'), orderBy('createdAt', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+        // 取得データをEntityに変換して返す
+        const tasks = snapshot.docs.map(doc => Task.fromFirestore(doc.id, doc.data()));
+        onUpdate(tasks);
+    }, onError);
+};
+```
