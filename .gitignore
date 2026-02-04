@@ -24,8 +24,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# firestoreSettings
-src/lib/firebase.js
+# # firestoreSettings
+# src/lib/firebase.js
 
 # Firebase
 .firebase/
