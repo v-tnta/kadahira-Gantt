@@ -77,7 +77,7 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
                                     }`}
                             >
                                 <div>
-                                    <h3 className={`font-medium ${task.status === 'DONE' ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                                    <h3 className={`font-medium ${task.status === 'DONE' ? 'text-gray-500' : 'text-gray-800'}`}>
                                         {task.title}
                                         {!task.isVisible && <span className="text-xs ml-2 text-red-500">(非表示)</span>}
                                     </h3>
