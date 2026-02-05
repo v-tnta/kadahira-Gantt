@@ -150,8 +150,8 @@ src/
 - **Backend**: Firebase Firestore
 - **Coding Style**:
   - **Layered Architecture**:
-    - **Presentation (Components)**: UIのみに関心を持つ。ロジックはHooksに委譲。
-    - **Application (Hooks)**: ユースケースを定義。直接Firestoreを触らず、Serviceを呼ぶ。
-    - **Infrastructure (Services)**: Firestoreとの通信を隠蔽する。
-    - **Domain (Entities)**: データ構造とビジネスロジック（遅延判定など）を持つ。
+    - **Presentation ( src/components )**: UIのみに関心を持つ。ロジックはHooksに委譲。
+    - **Application ( src/hooks )**: ユースケースを定義。直接Firestoreを触らず、Serviceを呼ぶ。
+    - **Infrastructure ( src/services )**: Firestoreとの通信を隠蔽する。
+    - **Domain ( src/domain )**: データ構造とビジネスロジック（遅延判定など）を持つ。
   - **段階的実装**: UI実装(固定値) → State実装(機能動作) → DB接続 の順で進める。
