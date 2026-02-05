@@ -13,6 +13,8 @@
 
 ## 2. ファイル構造 (ディレクトリ構成)
 
+v0.0.1 (Layered Architecture)
+
 ```
 src/
 ├── components/          # Presentation Layer: UI表示
@@ -48,7 +50,7 @@ src/
 | `documentId` | string | 自動生成ID |
 | `title` | string | タスク名 |
 | `estimatedMinutes` | number | 見積もり時間 (分) |
-| `deadline` | timestamp | 締切日 |
+| `deadline` | timestamp | 締切日 (ソートキーとして使用) |
 | `status` | string | 'TODO', 'DOING', 'DONE' |
 | `isVisible` | boolean | 表示フラグ (default: true) |
 | `createdAt` | timestamp | 作成日時 |
@@ -121,7 +123,6 @@ src/
 タスク詳細を表示し、編集・ステータス管理・削除を行うモーダル。
 
 - **機能**: タスクの詳細表示と各種操作。
-
 - **構成**:
   1. (省略: TaskAnalytics, GanttChart, 編集機能)
   2. **アクションボタン**:
@@ -154,4 +155,5 @@ src/
     - **Application ( src/hooks )**: ユースケースを定義。直接Firestoreを触らず、Serviceを呼ぶ。
     - **Infrastructure ( src/services )**: Firestoreとの通信を隠蔽する。
     - **Domain ( src/domain )**: データ構造とビジネスロジック（遅延判定など）を持つ。
+      - **計算ロジック**（例: 時間集計）はここに純粋関数として記述し、コンポーネント変数への代入はApplication層で行う。
   - **段階的実装**: UI実装(固定値) → State実装(機能動作) → DB接続 の順で進める。
