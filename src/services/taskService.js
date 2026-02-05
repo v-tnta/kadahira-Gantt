@@ -25,7 +25,7 @@ const COLLECTION_NAME = 'tasks';
  */
 export const subscribeToTasks = (onUpdate, onError) => {
     const tasksCollection = collection(db, COLLECTION_NAME);
-    const q = query(tasksCollection, orderBy('createdAt', 'asc'));
+    const q = query(tasksCollection, orderBy('deadline', 'asc'));
 
     return onSnapshot(q, (snapshot) => {
         const tasks = snapshot.docs.map((doc) => {

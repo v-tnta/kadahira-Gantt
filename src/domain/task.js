@@ -44,16 +44,19 @@ export class Task {
     /**
      * Firestoreなどの外部データからエンティティを生成するファクトリ
      * @param {string} id 
-     * @param {Object} data 
+     * @param {Object} data //ドキュメント内のid以外のフィールド要素
      */
     static fromFirestore(id, data) {
         return new Task({
             id,
-            ...data,
+            ...data, //「...」→ id以外を展開
+
             // FirestoreのTimestamp型をDate型に変換
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || new Date()),
             deadline: data.deadline?.toDate ? data.deadline.toDate() : (data.deadline ? new Date(data.deadline) : null),
-            // レガシーデータ対応
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt || null),
+
+            // レガシーデータ対応 (明示的にfalseが設定されていればfalse、それ以外(undefined|true)はtrue)
             isVisible: data.isVisible !== false,
         });
     }

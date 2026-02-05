@@ -1,5 +1,4 @@
-// Firebaseの初期化設定ファイルです。
-// まだAPIキーなどが設定されていないため、後ほど設定する必要があります。
+// Firebaseの初期化設定ファイル
 
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";

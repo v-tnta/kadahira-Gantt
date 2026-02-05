@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as timeLogService from '../services__Infrastructure/timeLogService';
+import * as timeLogService from '../services/timeLogService';
 
 /**
  * タイムログ（実績時間）を管理するカスタムフック
