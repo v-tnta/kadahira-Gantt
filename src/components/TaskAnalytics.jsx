@@ -1,6 +1,17 @@
 import React from 'react'
 
 /**
+ * 任意の桁で四捨五入する関数
+ * @param {number} value 四捨五入する数値
+ * @param {number} base どの桁で四捨五入するか（1→小数第１位、2→小数第２位）
+ * @return {number} 四捨五入した値
+ */
+function orgRound(value, base) {
+    return value.toFixed((base));
+}
+
+
+/**
  * TaskAnalytics コンポーネント
  * タスクの「見積もり」と「実績」を比較し、時間負債を表示します。
  */
@@ -26,20 +37,33 @@ const TaskAnalytics = ({ task, logs = [] }) => {
             {/* 見積もり */}
             <div className="text-center">
                 <p className="text-xs text-gray-500 mb-1">見積もり</p>
-                <p className="text-xl font-bold text-gray-700">{estimatedMinutes}分</p>
+                {estimatedMinutes > 60 ? (
+                    <p className="text-xl font-bold text-gray-700">{orgRound(estimatedMinutes / 60, 1)}時間</p>
+                ) : (
+                    <p className="text-xl font-bold text-gray-700">{orgRound(estimatedMinutes, 2)}分</p>
+                )}
             </div>
 
             {/* 実績 */}
             <div className="text-center border-l border-r border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">実績 (合計)</p>
-                <p className="text-xl font-bold text-gray-700">{Math.round(totalActualMinutes)}分</p>
+                {totalActualMinutes > 60 ? (
+                    <p className="text-xl font-bold text-gray-700">{orgRound(totalActualMinutes / 60, 1)}時間</p>
+                ) : (
+                    <p className="text-xl font-bold text-gray-700">{orgRound(totalActualMinutes, 2)}分</p>
+                )}
             </div>
 
             {/* 負債/貯金 */}
             <div className="text-center">
                 <p className={`text-xs ${debtColor} mb-1 font-bold`}>{debtLabel}</p>
                 <p className={`text-xl font-bold ${debtColor}`}>
-                    {isOver ? '+' : ''}{Math.round(debtMinutes)}分
+                    {isOver ? '+' : ''}
+                    {debtMinutes > 60 | debtMinutes < -60 ? (
+                        orgRound(debtMinutes / 60, 1) + '時間'
+                    ) : (
+                        orgRound(debtMinutes, 2) + '分'
+                    )}
                 </p>
             </div>
         </div>
