@@ -4,7 +4,9 @@ import React from 'react'
  * 共通レイアウトコンポーネント
  * ヘッダーとメインコンテンツエリアを定義します。
  */
-const Layout = ({ children }) => {
+import Calendar from './Calendar'
+
+const Layout = ({ children, tasks, onTaskClick }) => {
     return (
         <div className="flex flex-col min-h-screen md:h-screen bg-gray-50 text-gray-800 md:overflow-hidden">
             {/* ヘッダーエリア */}
@@ -18,9 +20,23 @@ const Layout = ({ children }) => {
                 </div>
             </header>
 
-            {/* メインコンテンツエリア: Desktopではスクロールしない (子がスクロールする) */}
-            <main className="flex-1 container mx-auto p-4 md:p-8 md:overflow-hidden">
-                {children}
+            {/* メインコンテンツエリア: Desktopでは横並び (Flex Row) */}
+            <main className="flex-1 container mx-auto p-4 md:p-8 md:overflow-y-auto">
+                <div className="flex flex-col-reverse md:flex-row gap-6 h-full">
+                    {/* 左側: メインコンテンツ (TaskForm & TaskList) */}
+                    <div className="w-full md:w-9/20 flex flex-col gap-6">
+                        {children}
+                    </div>
+
+                    {/* 右側: カレンダーエリア */}
+                    {tasks && (
+                        <div className="w-full md:w-4/5">
+                            <div className="sticky top-4">
+                                <Calendar tasks={tasks} onEventClick={onTaskClick} />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* フッターエリア (必要であれば) */}

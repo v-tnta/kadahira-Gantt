@@ -41,22 +41,15 @@ function App() {
     : [];
 
   return (
-    <Layout>
-      <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        {/* 左カラム (PC時: 1/3幅) - Form Only */}
-        <div className="md:col-span-1 flex flex-col gap-6 md:overflow-y-auto md:pr-2 custom-scrollbar">
-          <div className="md:hidden mb-4 text-center">
-            {/* Mobileのみここにタイトルなどを出す場合 */}
-          </div>
-
-          <div>
-            <TaskForm addTask={addTask} />
-          </div>
+    <Layout tasks={visibleTasks} onTaskClick={handleTaskClick}>
+      <div className="flex flex-col gap-8">
+        {/* 上部: 新規タスク追加 */}
+        <div>
+          <TaskForm addTask={addTask} />
         </div>
 
-        {/* 右カラム (PC時: 2/3幅) - TaskList */}
-        <div className="md:col-span-2 md:overflow-y-auto md:pl-2 custom-scrollbar">
+        {/* 下部: タスク一覧 */}
+        <div>
           <TaskList
             tasks={tasksForList}
             timeLogs={timeLogs}
@@ -70,7 +63,7 @@ function App() {
           />
         </div>
 
-        {/* タスク詳細モーダル (常にDOMには居るが、isOpenがtrueの時だけ表示される) */}
+        {/* タスク詳細モーダル */}
         <TaskOverlay
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -82,6 +75,7 @@ function App() {
         />
       </div>
     </Layout>
+
   )
 }
 
