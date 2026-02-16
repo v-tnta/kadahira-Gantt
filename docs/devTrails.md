@@ -664,3 +664,54 @@ export const subscribeToTasks = (onUpdate, onError) => {
     }, onError);
 };
 ```
+
+## 📅 2026/02/16 カレンダーUIのレイアウト改善とレスポンシブ対応
+
+### **【実装内容🔧】**
+
+#### **1. カレンダー機能の統合とレイアウト刷新**
+- **概要**: `Calendar.jsx` コンポーネント（`react-big-calendar`）を本格導入し、タスクの締切日をカレンダー上で可視化。
+- **レイアウト変更 (`Layout.jsx`)**:
+  - **Mobile (< 768px)**:
+    - **上部配置**: カレンダーを画面最上部に配置し、その下にタスクリスト/フォームを配置（`flex-col-reverse`を利用）。
+    - **意図**: スマートフォンでは「予定の確認」が最優先アクションであるため、カレンダーへのアクセス性を向上。
+  - **Desktop (>= 768px)**:
+    - **2カラム構成**: 左側にタスク操作エリア、右側にカレンダーエリアを配置。
+    - **幅の調整**: カレンダーエリアを大きく取り (`md:w-4/5`)、視認性を高めた。
+
+#### **2. カレンダーコンポーネントの調整**
+- **表示設定**:
+  - `month` (月表示) と `week` (週表示) をサポート。
+  - 日本語ロケール (`moment/locale/ja`) の適用。
+- **スタイリング**:
+  - タスクのステータス（TODO, DOING, DONE）に応じたイベントの背景色分け（青, 黄, 緑）。
+
+### **【技術的な判断🤔】**
+
+#### **CSS Flexboxによるレスポンシブ順序制御**
+- **手法**: `flex-col-reverse` (Mobile) ↔ `flex-row` (Desktop) の切り替え。
+- **理由**: HTML構造を変えることなく、CSSのみで視覚的な順序をデバイスに最適化するため。
+  - Mobile: 下から上へ (Calendarが最後にあるので一番上に来る)
+  - Desktop: 左から右へ
+
+### **【重要なコード💾】**
+
+**レイアウト制御 (Layout.jsx)**
+```javascript
+{/* Mobile: col-reverse (カレンダーが上), Desktop: row (左:リスト, 右:カレンダー) */}
+<div className="flex flex-col-reverse md:flex-row gap-6 h-full">
+    {/* 左側: メインコンテンツ (TaskForm & TaskList) */}
+    <div className="w-full md:w-9/20 flex flex-col gap-6">
+        {children}
+    </div>
+
+    {/* 右側: カレンダーエリア */}
+    {tasks && (
+        <div className="w-full md:w-4/5">
+            <div className="sticky top-4">
+                <Calendar tasks={tasks} onEventClick={onTaskClick} />
+            </div>
+        </div>
+    )}
+</div>
+```
