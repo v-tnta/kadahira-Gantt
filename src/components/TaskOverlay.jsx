@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import GanttChart from './GanttChart'
 import TaskAnalytics from './TaskAnalytics'
+import Timer from './Timer'
 
 /**
  * TaskOverlay コンポーネント
@@ -221,6 +222,11 @@ const TaskOverlay = ({ isOpen, onClose, task, logs, onUpdate, onDelete, onPhysic
                                 <p className="text-sm text-gray-500 mt-1">
                                     締切: {formatDate(task.deadline)}
                                 </p>
+
+                                {/* Timer Component Embedded Here */}
+                                <div className="mt-4 border-t border-gray-100 pt-3">
+                                    <Timer activeTask={task} onUpdateTask={onUpdate} />
+                                </div>
                             </>
                         )}
                     </div>

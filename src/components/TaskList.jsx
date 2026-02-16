@@ -49,7 +49,7 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-700">タスク一覧</h2>
+                <h2 className="text-lg font-semibold text-gray-700">タスク一覧 (クリックで詳細 & タイマー)</h2>
                 <label className="flex items-center cursor-pointer text-sm text-gray-500 hover:text-gray-700">
                     <input
                         type="checkbox"
@@ -99,7 +99,7 @@ const TaskList = ({ tasks, timeLogs, loading, error, onTaskClick, onUpdateTask, 
 
 
                                     {/* 操作ボタン */}
-                                    <div className="flex items-center">
+                                    <div className="flex items-center gap-1">
                                         {task.status !== 'DONE' ? (
                                             <button
                                                 onClick={(e) => handleComplete(e, task)}

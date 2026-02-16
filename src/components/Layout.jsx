@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
                     <h1 className="text-xl font-bold text-blue-600">Refrecto (β)</h1>
                     <nav>
                         {/* 将来的にナビゲーションリンクなどをここに配置 */}
-                        <span className="text-sm text-gray-500">Time Management App v0.0.1</span>
+                        <span className="text-sm text-gray-500">Time Management App v0.0.2</span>
                     </nav>
                 </div>
             </header>

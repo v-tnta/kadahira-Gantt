@@ -19,7 +19,7 @@ function App() {
   const visibleTasks = React.useMemo(() => tasks.filter(t => t.isVisible !== false), [tasks]);
   const tasksForList = showHidden ? tasks : visibleTasks;
 
-  // モーダル用のステート
+  // モーダル用のステート (TaskOverlay: 詳細/編集)
   const [selectedTask, setSelectedTask] = React.useState(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -35,7 +35,7 @@ function App() {
     setSelectedTask(null);
   };
 
-  // 選択されたタスクに関連するログだけをフィルタリング
+  // 選択されたタスクに関連するログだけをフィルタリング (TaskOverlay用)
   const selectedTaskLogs = selectedTask
     ? timeLogs.filter(log => log.taskId === selectedTask.id)
     : [];
@@ -44,15 +44,10 @@ function App() {
     <Layout>
       <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        {/* 左カラム (PC時: 1/3幅) - Timer & Form */}
+        {/* 左カラム (PC時: 1/3幅) - Form Only */}
         <div className="md:col-span-1 flex flex-col gap-6 md:overflow-y-auto md:pr-2 custom-scrollbar">
           <div className="md:hidden mb-4 text-center">
             {/* Mobileのみここにタイトルなどを出す場合 */}
-          </div>
-
-          <div>
-            {/* Timerには常に表示中のタスクのみを渡す */}
-            <Timer tasks={visibleTasks} onUpdateTask={updateTask} />
           </div>
 
           <div>
