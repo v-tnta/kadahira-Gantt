@@ -1,4 +1,4 @@
-# Refrecto (β) System Design Document
+# Reflatto (β) System Design Document
 
 ## 1. 概要
 本アプリケーションは、学生の時間管理能力とメタ認知を向上させるためのツールです。
@@ -27,7 +27,8 @@ src/
 │   ├── Timer.jsx          
 │   ├── TaskOverlay.jsx    
 │   ├── TaskAnalytics.jsx  
-│   └── GanttChart.jsx     
+│   ├── GanttChart.jsx     
+│   └── AccountMergeModal.jsx # アカウント統合確認モーダル
 ├── hooks/               # Application Layer: ユースケース (Serviceを利用)
 │   ├── useTasks.js        
 │   └── useTimeLogs.js     
@@ -51,6 +52,7 @@ src/
 | Field | Type | Description |
 |---|---|---|
 | `documentId` | string | 自動生成ID |
+| `userId` | string | 所有ユーザーのUID (Firebase Auth) |
 | `title` | string | タスク名 |
 | `estimatedMinutes` | number | 見積もり時間 (分) |
 | `deadline` | timestamp | 締切日 (ソートキーとして使用) |
@@ -64,6 +66,7 @@ src/
 | Field | Type | Description |
 |---|---|---|
 | `documentId` | string | 自動生成ID |
+| `userId` | string | 所有ユーザーのUID (Firebase Auth) |
 | `taskId` | string | `tasks` ドキュメントへの参照ID |
 | `subTaskName` | string | (Option) その時行っていた具体的な作業名 |
 | `startTime` | timestamp | 計測開始時刻 |
@@ -160,3 +163,12 @@ src/
     - **Domain ( src/domain )**: データ構造とビジネスロジック（遅延判定など）を持つ。
       - **計算ロジック**（例: 時間集計）はここに純粋関数として記述し、コンポーネント変数への代入はApplication層で行う。
   - **段階的実装**: UI実装(固定値) → State実装(機能動作) → DB接続 の順で進める。
+
+## 6. 認証とセキュリティ
+- **Authentication**: Firebase Authenticationを用いた「匿名認証」と「Googleアカウントへのアップグレード連携（Account Linking）」を採用。
+  - **匿名ログイン**: アプリを開いた瞬間に自動で匿名アカウントが発行され、ログイン不要ですぐに利用開始できる。
+  - **アカウント連携（データ引き継ぎ）**: 匿名状態で作成したデータを失うことなく、後からGoogleアカウントに紐付けることができる。
+  - **データマージ処理**: 連携時に「すでに使用されているGoogleアカウント (`auth/credential-already-in-use`)」である場合、ブラウザのポップアップブロックを回避する専用のカスタムモーダル（`AccountMergeModal`）を表示。ユーザーの同意を得た上で、匿名データを新しいアカウント権限で再作成（`addDoc`）することでFirestoreのセキュリティルールを遵守しつつデータを統合する。
+- **データアクセス権限**:
+  - 各ドキュメント (`tasks`, `timeLogs`) は `userId` フィールドによって所有者を管理。
+  - Firestoreセキュリティルールにより、`request.auth != null && request.auth.uid == resource.data.userId` の条件を満たした場合のみ読み書きを許可。自分以外のデータへのアクセスは強固にブロックされる。

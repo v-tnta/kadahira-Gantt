@@ -715,3 +715,88 @@ export const subscribeToTasks = (onUpdate, onError) => {
     )}
 </div>
 ```
+
+## 📅 2026/02/23 FirebaseAuthによるGoogleログイン機能実装とリブランディング (v0.1.0)
+
+### **【実装内容🔧】**
+
+#### **1. アプリ名称変更とリブランディング (v0.1.0)**
+- **変更前**: Refrecto (β)
+- **変更後**: **Reflatto (β)**
+  - パッケージ名、HTMLタイトル、UIヘッダー、ドキュメントの名称をすべて「Reflatto」に統一。
+
+#### **2. Firebase AuthenticationによるGoogleログインの実装**
+- **要件**: ユーザーごとにデータを分離し、個人の作業履歴やタスク管理を行えるようにする。
+- **実装内容**:
+  - `firebase/auth` を利用して `GoogleAuthProvider` を設定。
+  - `AuthContext` と `useAuth` カスタムフックを作成し、アプリ全体でログイン状態 (`currentUser`) を管理。
+  - `Layout.jsx` のヘッダーにログイン／ログアウトボタン、およびユーザーアイコンを配置。
+  - `App.jsx` を修正し、未ログイン時はメイン画面（タスク管理やカレンダー）を隠し、ログインを促すウェルカム画面を表示するように制御。
+
+#### **3. タスク・実績データのユーザー分離**
+- **課題**: 以前は全てのデータが共通コレクションに保存されていたため、誰のデータかわからなかった。
+- **実装内容**:
+  - `taskService.js` および `timeLogService.js` のデータ保存時に、現在ログイン中のユーザーの `userId` (UID) を付与するように修正。
+  - データ取得（`subscribeToTasks`, `subscribeToTimeLogs`）時に、`where("userId", "==", currentUserId)` のクエリ条件を追加。
+
+#### **4. セキュリティルールの強化**
+- **変更内容**: `firestore.rules` を更新し、認証済みユーザーのみが自身のデータ(`userId` が自分の `uid` と一致するドキュメント) にのみ `read, create, update, delete` を行えるように制限。これにより、他人のデータを読み書きできない安全な構成を実現。
+
+### **【技術的な判断🤔】**
+
+#### **Context API を用いた認証状態管理**
+- **理由**: ログイン状態 (`currentUser`) は `Layout` や `App`、さらには各フック (`useTasks`, `useTimeLogs`) など広範囲で必要になるため、あえてPropsドリルではなく React Context API (`AuthContext`) を用いることで、どのコンポーネント・フックからでもシームレスにアクセスできるように設計。
+
+### **【遭遇した問題と解決💡】**
+- **Firestoreの複合インデックスの必要性**: `userId` でのフィルタリング (`where`) と、締切日や作成日時でのソート (`orderBy`) を同時に行うため、Firestoreでの複合インデックス構築が必要となる。ローカル開発時にコンソールから示されるリンクを踏んでインデックスを生成する想定。
+
+#### **匿名アカウント連携（データマージ）時のバグ対応**
+- **問題①**: Firebaseで「このアカウントはすでに使われています (`auth/credential-already-in-use`)」エラーキャッチ後に出していた `window.confirm` ダイアログが表示されない。
+  - **原因**: ログインポップアップ（別ウィンドウ）から戻ってきた直後のため、Chrome等のブラウザセキュリティ（Cross-Origin-Opener-Policy）により「不審なダイアログ」として強制ブロックされていた。
+  - **対応**: 標準の `window.confirm` を廃止し、ReactのStateを利用した専用のカスタムモーダルを描画する方式に変更。
+  - さらに、そのカスタムモーダルを汎用的な `ConfirmModal.jsx` へとリファクタリング。背景を `bg-black/40 backdrop-blur-md` に変更し、背後の要素がわずかに透けて見えるモダンなすりガラス風デザインを導入した。「ログアウト時の確認」など他の用途でも全く同じデザイン・仕組みでモーダルを呼び出せるようにし、コードの重複を排除した。旧版である `AccountMergeModal.jsx` は `useAuth.jsx` 内での直接呼び出しに切り替えたため削除した。
+- **問題②**: 結合（マージ）を選択した際、Firestoreの `updateDoc` 操作がエラー（`Missing or insufficient permissions`）で弾かれる。
+  - **原因**: データ書き換えの直前にGoogleアカウントにログインし直してしまうため、Firestoreのルールから見て「今ログインしている人（Googleアカウント）が、別の人（直前までの匿名ユーザー）のデータを勝手に書き換えようとしている」と判定され、正しくブロックされていた。
+  - **対応**: ルールを緩めるのではなく、プログラムの順序を変更。
+    1. 匿名状態のまま、データを全てメモリ（配列）に読み込んで待避する。
+    2. Googleアカウントでログインし直す（権限切り替え）。
+    3. 待避しておいたデータを、自分の新しいデータとして **「新規作成 (`addDoc`)」** して作り直す。旧IDとの紐付け（TimeLog → Taskのひも付け）もメモリ上で置換してから保存。
+    これにより、セキュリティルールを担保したまま安全にマージを完了できるようになった。
+
+### **【重要なコード💾】**
+
+**セキュアなデータ引き継ぎ処理 (useAuth.jsx)**
+```javascript
+// 1. 匿名状態でのバックアップ
+const anonymousUid = currentUser.uid;
+const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('userId', '==', anonymousUid)));
+const tempTasks = tasksSnap.docs.map(doc => ({ oldId: doc.id, data: doc.data() }));
+
+// 2. Googleアカウントへログイン（権限の切り替わり）
+const result = await signInWithCredential(auth, credential);
+const newUid = result.user.uid;
+
+// 3. 新規作成としてデータを再登録（旧IDの置換も含む）
+const taskIdMap = {}; 
+for (const item of tempTasks) {
+    const taskData = { ...item.data, userId: newUid };
+    const docRef = await addDoc(collection(db, 'tasks'), taskData);
+    taskIdMap[item.oldId] = docRef.id;
+}
+```
+
+#### **ガントチャートの入れ替わりバグ修正**
+- **問題**: タスク詳細画面の「実績チャート（GanttChart）」において、ログの順番が入れ替わってしまう（右側に順番に積み上がらない）現象が発生した。
+  - **原因**: チャート上の並び順を `startTime` （作業の開始日時）ベースで計算していたため。「事後報告」などを使って過去の時間を入力した場合、`startTime`が過去に操作されるため、実際の作業登録順序（時系列順）を無視してグラフの途中に強制的に割り込んでしまっていた。
+  - **対応**: `GanttChart.jsx` のソートロジックを修正。`startTime` ではなく、データベースに打刻された実際の登録日時である `createdAt` （`createdAt.getTime()`）を使用してソートするように変更。これにより、事後登録であろうとリアルタイム打刻であろうと「システムに記録された順」で左から右へ正しく積み重なるようになった。
+
+#### **ヘッダーUIの調整とデプロイ (v0.1.0)**
+- **変更内容**: `Layout.jsx` におけるヘッダー部分のUIデザインと言葉遣いを改善した。
+  - ログイン済みユーザーの表示順序を変更（「ログアウト」ボタンを左、「ユーザーアイコン」を右に配置換え）。
+  - 未ログイン時のGoogleログインボタンのテキストを「データを保存 (Google連携)」から直感的な「Google ログイン」に変更。
+  - ビルド (`npm run build`) および Firebase Hostingへ最新版のデプロイ (`firebase deploy`) を完了。
+
+#### **タスク完全削除時のFirestore権限エラー修正**
+- **問題**: タスク詳細モーダルから「完全に削除」を実行しても削除が完了せずエラーが発生する。
+  - **原因**: 削除対象のタスクに紐づく作業ログ (TimeLogs) を取得するためのクエリ `getDocs` において、`userId` による絞り込み条件が含まれていなかったため。`firestore.rules` で「自分の `userId` のみアクセス可（`where`での絞り込み必須）」としているため、セキュリティルール違反として弾かれていた。
+  - **対応**: `useTasks.js` および `taskService.js` の `completelyDeleteTask` 処理を修正し、`userId` を引数として伝達。作業ログ取得時のクエリに `where('userId', '==', userId)` を追加することで、Firestoreのセキュリティルールを正常に通過し、関連レコードも含めた安全なカスケード削除ができるようになった。

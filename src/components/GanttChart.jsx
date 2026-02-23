@@ -12,10 +12,14 @@ const GanttChart = ({ logs = [] }) => {
 
     // 計算ロジック
     const { totalDurationMin, sortedLogs, ticks } = useMemo(() => {
-        // 時刻順（作成順）にソート
-        const sorted = [...logs].sort((a, b) => a.startTime - b.startTime);
+        // 登録順（作成日時順）にソート。無い場合はstartTimeを使う。
+        const sorted = [...logs].sort((a, b) => {
+            const timeA = a.createdAt ? a.createdAt.getTime() : (a.startTime ? a.startTime.getTime() : 0);
+            const timeB = b.createdAt ? b.createdAt.getTime() : (b.startTime ? b.startTime.getTime() : 0);
+            return timeA - timeB;
+        });
 
-        // 合計時間（分）を計算
+        // 合計時間（分）を計算（最低でも1分とする）
         const totalSec = sorted.reduce((acc, log) => acc + (log.durationSeconds || 0), 0);
         const totalMin = Math.ceil(totalSec / 60);
 
@@ -106,8 +110,8 @@ const GanttChart = ({ logs = [] }) => {
                     style={{ width: `${ticks[ticks.length - 1] * pixelsPerMin}px` }} // バー全体の幅も動的に
                 >
                     {sortedLogs.map((log, index) => {
-                        const durationMin = Math.round((log.durationSeconds || 0) / 60);
-                        if (durationMin <= 0) return null;
+                        // 1分未満の作業でも視認できるように最低1分とする
+                        const durationMin = Math.max(1, Math.round((log.durationSeconds || 0) / 60));
 
                         const widthPx = durationMin * pixelsPerMin;
                         const colorClass = colors[index % colors.length];

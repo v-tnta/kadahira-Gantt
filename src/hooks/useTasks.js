@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as taskService from '../services/taskService';
+import { useAuth } from './useAuth';
 
 /**
  * タスク管理のカスタムフック (Application Layer)
@@ -7,16 +8,30 @@ import * as taskService from '../services/taskService';
  * データの監視、状態管理、エラーハンドリングを行います。
  */
 export const useTasks = () => {
+    const { currentUser } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // データの監視を開始
     useEffect(() => {
+        if (!currentUser) {
+            setTasks([]);
+            setError(null); // ログアウト時はエラー状態もクリア
+            setLoading(false);
+            return;
+        }
+
+        // 新しいユーザーでの購読開始時はローディングとエラーを初期化
+        setLoading(true);
+        setError(null);
+
         const unsubscribe = taskService.subscribeToTasks(
+            currentUser.uid,
             (newTasks) => {
                 setTasks(newTasks);
                 setLoading(false);
+                setError(null); // 成功時も念のためクリア
             },
             (err) => {
                 console.error("Task Subscription Error:", err);
@@ -26,14 +41,15 @@ export const useTasks = () => {
         );
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     /**
      * 新しいタスクを追加
      */
     const addTask = async (task) => {
+        if (!currentUser) return;
         try {
-            await taskService.addTask(task);
+            await taskService.addTask(currentUser.uid, task);
             console.log("タスク追加成功");
         } catch (err) {
             console.error("タスク追加エラー:", err);
@@ -69,15 +85,14 @@ export const useTasks = () => {
         }
     };
 
-    /**
-     * タスクを完全削除 (Cascade)
-     */
     const completelyDeleteTask = async (taskId) => {
+        if (!currentUser) return;
         try {
-            await taskService.completelyDeleteTask(taskId);
+            await taskService.completelyDeleteTask(currentUser.uid, taskId);
             console.log("タスクと関連ログの完全削除に成功");
         } catch (err) {
             console.error("完全削除エラー:", err);
+            alert("削除に失敗しました。");
             throw err;
         }
     };

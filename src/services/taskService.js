@@ -2,7 +2,6 @@ import {
     collection,
     addDoc,
     updateDoc,
-    deleteDoc,
     doc,
     onSnapshot,
     query,
@@ -19,13 +18,19 @@ const COLLECTION_NAME = 'tasks';
 
 /**
  * タスク一覧をリアルタイム監視する
+ * @param {string} userId - ログイン中のユーザーID
  * @param {function} onUpdate - 更新時に呼び出されるコールバック (tasks: Task[])
  * @param {function} onError - エラー時に呼び出されるコールバック
  * @returns {function} unsubscribe - 監視解除用の関数
  */
-export const subscribeToTasks = (onUpdate, onError) => {
+export const subscribeToTasks = (userId, onUpdate, onError) => {
     const tasksCollection = collection(db, COLLECTION_NAME);
-    const q = query(tasksCollection, orderBy('deadline', 'asc'));
+    // userIdでフィルタリング
+    const q = query(
+        tasksCollection,
+        where('userId', '==', userId),
+        orderBy('deadline', 'asc')
+    );
 
     return onSnapshot(q, (snapshot) => {
         const tasks = snapshot.docs.map((doc) => {
@@ -37,14 +42,16 @@ export const subscribeToTasks = (onUpdate, onError) => {
 
 /**
  * タスクを追加する
+ * @param {string} userId - ログイン中のユーザーID
  * @param {Object} taskData - Taskエンティティ、またはオブジェクト
  */
-export const addTask = async (taskData) => {
+export const addTask = async (userId, taskData) => {
     const tasksCollection = collection(db, COLLECTION_NAME);
     // Taskエンティティから必要なデータだけ抽出、またはそのまま使う
     // ここではシンプルにオブジェクトとして扱う
     await addDoc(tasksCollection, {
         ...taskData,
+        userId, // ユーザーIDを保存
         status: 'TODO',
         isVisible: true,
         createdAt: serverTimestamp()
@@ -72,16 +79,17 @@ export const softDeleteTask = async (taskId) => {
 
 /**
  * タスクを完全に削除する (関連するTimeLogsも削除)
+ * @param {string} userId
  * @param {string} taskId
  */
-export const completelyDeleteTask = async (taskId) => {
+export const completelyDeleteTask = async (userId, taskId) => {
     // 1. TimeLogsの削除 (Cascade) - ここでTimeLogsへの依存が発生してしまうが、
     // 本来はCloud FunctionまたはTimeLogService側で処理すべきかもしれない。
     // 今回は要件に従いここに記述するが、理想的にはTimeLogService.deleteByTaskId(taskId)などを呼びたい。
     // 一旦既存ロジックを移植。
 
     // Note: 本来はTransactionを使うべきだが、既存ロジックに合わせてBatchで実装
-    const logsQuery = query(collection(db, 'timeLogs'), where('taskId', '==', taskId));
+    const logsQuery = query(collection(db, 'timeLogs'), where('taskId', '==', taskId), where('userId', '==', userId));
     const logsSnapshot = await getDocs(logsQuery);
 
     const batch = writeBatch(db);
